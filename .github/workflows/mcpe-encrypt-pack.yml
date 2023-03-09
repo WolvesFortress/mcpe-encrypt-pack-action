@@ -1,0 +1,53 @@
+name: Encrypt Minecraft Bedrock Pack using mcrputil
+
+on: [push, workflow_dispatch]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    if: "contains(github.event.head_commit.message, '[release]')"
+    outputs:
+      matrix: ${{ steps.parsed-version.outputs.version }}
+    steps:
+      - uses: actions/checkout@v3
+
+    # Output setting example
+      - name: Get repo name
+        id: repo-basename
+        run: |
+          echo "value=`basename ${{ github.repository }}`" >> $GITHUB_OUTPUT
+        shell: bash
+      - name: Parse version from manifest.json
+        id: parsed-version
+        run: |
+          VERSION=$(cat manifest.json | jq '.header.version | @csv' | sed -r 's/[,]+/./g' | tr -d '"')
+          echo "${VERSION}"
+          echo "version=${VERSION}" >> $GITHUB_OUTPUT
+      - name: Download Encryptor
+        uses: robinraju/release-downloader@v1.7
+        with:
+          fileName: mcrputil
+          latest: true
+          repository: valaphee/mcrputil
+      - name: Encrypt files
+        run: |
+          chmod +x /home/runner/work/${{ steps.repo-basename.outputs.value }}/${{ steps.repo-basename.outputs.value }}/mcrputil
+          /home/runner/work/${{ steps.repo-basename.outputs.value }}/${{ steps.repo-basename.outputs.value }}/mcrputil encrypt /home/runner/work/${{ steps.repo-basename.outputs.value }}/${{ steps.repo-basename.outputs.value }} ${{ steps.repo-basename.outputs.value }}
+      - name: Get encryption key
+        id: encryption-key
+        run: |
+          KEY=$(cat ${{ steps.repo-basename.outputs.value }}.key)
+          echo "key=${KEY}" >> $GITHUB_OUTPUT
+      - name: Compress Files
+        run: |
+          cd ${{ steps.repo-basename.outputs.value }}
+          zip -r ../${{ steps.repo-basename.outputs.value }}.mcpack * -i \*.material \*.png \*.json \*.lang \*.ogg LICENSE.txt
+      - name: Create and Publish Release
+        uses: softprops/action-gh-release@v1
+        with:
+          generate_release_notes: true
+          tag_name: "${{ steps.parsed-version.outputs.version }}"
+          name: "v${{ steps.parsed-version.outputs.version }}"
+          files: |
+            ${{ steps.repo-basename.outputs.value }}.mcpack
+            ${{ steps.repo-basename.outputs.value }}.key
