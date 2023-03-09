@@ -1,3 +1,5 @@
 name: mcpe-encrypt-pack-action
 description: Encrypt Minecraft Bedrock Pack using mcrputil
 author: WolvesFortress
+color: purple
+icon: archive
