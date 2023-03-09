@@ -4,3 +4,5 @@ author: WolvesFortress
 branding:
   color: purple
   icon: archive
+runs:
+  using: "composite"
